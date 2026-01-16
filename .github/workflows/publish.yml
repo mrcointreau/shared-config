@@ -1,0 +1,120 @@
+name: Publish
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: Node.js version
+        required: false
+        type: string
+        default: "22"
+      project-type:
+        description: "Project type: node or python"
+        required: true
+        type: string
+      python-version:
+        description: Python version
+        required: false
+        type: string
+        default: "3.12"
+      use-oidc:
+        description: Use OIDC trusted publishing, set to false to use tokens
+        required: false
+        type: boolean
+        default: true
+      version:
+        description: Version to publish (without v prefix)
+        required: true
+        type: string
+      working-directory:
+        description: Working directory
+        required: false
+        type: string
+        default: "."
+    secrets:
+      NPM_TOKEN:
+        required: false
+      PYPI_TOKEN:
+        required: false
+  workflow_dispatch:
+    inputs:
+      node-version:
+        description: Node.js version
+        required: false
+        type: string
+        default: "22"
+      project-type:
+        description: "Project type: node or python"
+        required: true
+        type: string
+      python-version:
+        description: Python version
+        required: false
+        type: string
+        default: "3.12"
+      use-oidc:
+        description: Use OIDC trusted publishing, set to false to use tokens
+        required: false
+        type: boolean
+        default: true
+      version:
+        description: Version to publish (without v prefix)
+        required: true
+        type: string
+      working-directory:
+        description: Working directory
+        required: false
+        type: string
+        default: "."
+
+permissions:
+  contents: read
+  id-token: write # Required for OIDC trusted publishing to npm/PyPI
+
+jobs:
+  validate:
+    name: Validate Inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate project-type
+        if: inputs.project-type != 'node' && inputs.project-type != 'python'
+        run: |
+          echo "::error::project-type must be 'node' or 'python', got '${{ inputs.project-type }}'"
+          exit 1
+
+      - name: Validate version
+        if: inputs.version == ''
+        run: |
+          echo "::error::version is required"
+          exit 1
+
+  publish:
+    name: Publish
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          ref: v${{ inputs.version }}
+
+      - name: Publish Node Package
+        if: inputs.project-type == 'node'
+        uses: mrcointreau/shared-config/actions/publish/node@main
+        with:
+          node-version: ${{ inputs.node-version }}
+          npm-token: ${{ secrets.NPM_TOKEN }}
+          use-oidc: ${{ inputs.use-oidc }}
+          version: ${{ inputs.version }}
+          working-directory: ${{ inputs.working-directory }}
+
+      - name: Publish Python Package
+        if: inputs.project-type == 'python'
+        uses: mrcointreau/shared-config/actions/publish/python@main
+        with:
+          pypi-token: ${{ secrets.PYPI_TOKEN }}
+          python-version: ${{ inputs.python-version }}
+          use-oidc: ${{ inputs.use-oidc }}
+          working-directory: ${{ inputs.working-directory }}

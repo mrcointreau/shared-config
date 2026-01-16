@@ -1,0 +1,19 @@
+# ⚠️ INTERNAL: This workflow is NOT reusable
+# It's specific to this repository for PR validation
+# For reusable workflows, see: ci.yml, pr.yml, release.yml, docs.yml, publish.yml
+
+name: Internal Pull Request
+
+on:
+  pull_request:
+    branches: [main, release]
+
+permissions:
+  contents: read
+
+jobs:
+  pr:
+    uses: ./.github/workflows/pr.yml
+    with:
+      project-type: node
+      run-commit-lint: true

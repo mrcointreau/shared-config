@@ -1,0 +1,105 @@
+name: Documentation
+
+on:
+  workflow_call:
+    inputs:
+      docs-path:
+        description: Path to generated docs
+        required: false
+        type: string
+        default: "docs"
+      node-version:
+        description: Node.js version
+        required: false
+        type: string
+        default: "22"
+      project-type:
+        description: "Project type: node or python"
+        required: true
+        type: string
+      publish:
+        description: Publish to GitHub Pages
+        required: false
+        type: boolean
+        default: true
+      python-version:
+        description: Python version
+        required: false
+        type: string
+        default: "3.12"
+      working-directory:
+        description: Working directory
+        required: false
+        type: string
+        default: "."
+
+permissions:
+  contents: read # Required to checkout code and build docs
+
+jobs:
+  validate:
+    name: Validate Inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate project-type
+        if: inputs.project-type != 'node' && inputs.project-type != 'python'
+        run: |
+          echo "::error::project-type must be 'node' or 'python', got '${{ inputs.project-type }}'"
+          exit 1
+
+  build:
+    name: Build Documentation
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Generate TypeDoc
+        if: inputs.project-type == 'node'
+        uses: mrcointreau/shared-config/actions/docs/typedoc@main
+        with:
+          docs-path: ${{ inputs.docs-path }}
+          node-version: ${{ inputs.node-version }}
+          working-directory: ${{ inputs.working-directory }}
+
+      - name: Generate Sphinx Docs
+        if: inputs.project-type == 'python'
+        uses: mrcointreau/shared-config/actions/docs/sphinx@main
+        with:
+          docs-path: ${{ inputs.docs-path }}
+          python-version: ${{ inputs.python-version }}
+          working-directory: ${{ inputs.working-directory }}
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: docs
+          path: ${{ inputs.working-directory }}/${{ inputs.docs-path }}
+
+  publish:
+    name: Publish Documentation
+    needs: build
+    if: inputs.publish && needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: docs
+          path: docs
+
+      - name: Publish to GitHub Pages
+        uses: mrcointreau/shared-config/actions/docs/publish@main
+        with:
+          docs-path: docs
+          github-token: ${{ github.token }}

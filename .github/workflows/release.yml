@@ -1,0 +1,233 @@
+name: Release
+
+on:
+  workflow_call:
+    inputs:
+      back-merge:
+        description: Merge release branch back to main after release
+        required: false
+        type: boolean
+        default: false
+      build-command:
+        description: Build command to run
+        required: false
+        type: string
+        default: ""
+      config-path:
+        description: Custom semantic-release config file path (uses built-in config if empty)
+        required: false
+        type: string
+        default: ""
+      dist-directory:
+        description: Directory containing built package for atomic publish
+        required: false
+        type: string
+        default: "dist"
+      dry-run:
+        description: Run in dry-run mode
+        required: false
+        type: boolean
+        default: false
+      node-version:
+        description: Node.js version
+        required: false
+        type: string
+        default: "22"
+      npm-publish:
+        description: Publish to npm atomically during release (Node). If publish fails, no tag/release created
+        required: false
+        type: boolean
+        default: false
+      project-type:
+        description: "Project type: node or python"
+        required: true
+        type: string
+      pypi-publish:
+        description: Publish to PyPI atomically during release (Python). If publish fails, no tag/release created
+        required: false
+        type: boolean
+        default: false
+      python-version:
+        description: Python version
+        required: false
+        type: string
+        default: "3.12"
+      use-oidc:
+        description: Use OIDC trusted publishing, set to false to use tokens
+        required: false
+        type: boolean
+        default: true
+      working-directory:
+        description: Working directory
+        required: false
+        type: string
+        default: "."
+    secrets:
+      BOT_ID:
+        required: true
+      BOT_SK:
+        required: true
+      NPM_TOKEN:
+        required: false
+      PYPI_TOKEN:
+        required: false
+  workflow_dispatch:
+    inputs:
+      back-merge:
+        description: Merge release branch back to main after release
+        required: false
+        type: boolean
+        default: false
+      build-command:
+        description: Build command to run
+        required: false
+        type: string
+        default: ""
+      config-path:
+        description: Custom semantic-release config file path (uses built-in config if empty)
+        required: false
+        type: string
+        default: ""
+      dist-directory:
+        description: Directory containing built package for atomic publish
+        required: false
+        type: string
+        default: "dist"
+      dry-run:
+        description: Run in dry-run mode
+        required: false
+        type: boolean
+        default: false
+      node-version:
+        description: Node.js version
+        required: false
+        type: string
+        default: "22"
+      npm-publish:
+        description: Publish to npm atomically during release (Node). If publish fails, no tag/release created
+        required: false
+        type: boolean
+        default: false
+      project-type:
+        description: "Project type: node or python"
+        required: true
+        type: string
+      pypi-publish:
+        description: Publish to PyPI atomically during release (Python). If publish fails, no tag/release created
+        required: false
+        type: boolean
+        default: false
+      python-version:
+        description: Python version
+        required: false
+        type: string
+        default: "3.12"
+      use-oidc:
+        description: Use OIDC trusted publishing, set to false to use tokens
+        required: false
+        type: boolean
+        default: true
+      working-directory:
+        description: Working directory
+        required: false
+        type: string
+        default: "."
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write # Required for OIDC trusted publishing to npm/PyPI
+
+jobs:
+  validate:
+    name: Validate Inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate project-type
+        if: inputs.project-type != 'node' && inputs.project-type != 'python'
+        run: |
+          echo "::error::project-type must be 'node' or 'python', got '${{ inputs.project-type }}'"
+          exit 1
+
+  release:
+    name: Release
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      new-release-published: ${{ steps.release-node.outputs.new-release-published || steps.release-python.outputs.new-release-published }}
+      new-release-version: ${{ steps.release-node.outputs.new-release-version || steps.release-python.outputs.new-release-version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Generate Bot Token
+        id: bot-token
+        uses: mrcointreau/shared-config/actions/utils/bot-token@main
+        with:
+          app-id: ${{ secrets.BOT_ID }}
+          private-key: ${{ secrets.BOT_SK }}
+
+      - name: Release Node Package
+        id: release-node
+        if: inputs.project-type == 'node'
+        uses: mrcointreau/shared-config/actions/release/node@main
+        with:
+          bot-token: ${{ steps.bot-token.outputs.token }}
+          build-command: ${{ inputs.build-command }}
+          config-path: ${{ inputs.config-path }}
+          dist-directory: ${{ inputs.dist-directory }}
+          dry-run: ${{ inputs.dry-run }}
+          node-version: ${{ inputs.node-version }}
+          npm-publish: ${{ inputs.npm-publish }}
+          npm-token: ${{ secrets.NPM_TOKEN }}
+          use-oidc: ${{ inputs.use-oidc }}
+          working-directory: ${{ inputs.working-directory }}
+
+      - name: Release Python Package
+        id: release-python
+        if: inputs.project-type == 'python'
+        uses: mrcointreau/shared-config/actions/release/python@main
+        with:
+          bot-token: ${{ steps.bot-token.outputs.token }}
+          build-command: ${{ inputs.build-command }}
+          config-path: ${{ inputs.config-path }}
+          dist-directory: ${{ inputs.dist-directory }}
+          dry-run: ${{ inputs.dry-run }}
+          pypi-publish: ${{ inputs.pypi-publish }}
+          pypi-token: ${{ secrets.PYPI_TOKEN }}
+          python-version: ${{ inputs.python-version }}
+          use-oidc: ${{ inputs.use-oidc }}
+          working-directory: ${{ inputs.working-directory }}
+
+  back-merge:
+    name: Back-merge to main
+    needs: release
+    if: inputs.back-merge == true && inputs.dry-run != true && needs.release.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Generate Bot Token
+        id: bot-token
+        uses: mrcointreau/shared-config/actions/utils/bot-token@main
+        with:
+          app-id: ${{ secrets.BOT_ID }}
+          private-key: ${{ secrets.BOT_SK }}
+
+      - name: Checkout main
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ steps.bot-token.outputs.token }}
+
+      - name: Merge release into main
+        run: |
+          git config user.name "${{ steps.bot-token.outputs.app-slug }}[bot]"
+          git config user.email "${{ secrets.BOT_ID }}+${{ steps.bot-token.outputs.app-slug }}[bot]@users.noreply.github.com"
+          git merge origin/${{ github.ref_name }} -m "chore: merge ${{ github.ref_name }} into main [skip ci]"
+          git push origin main
