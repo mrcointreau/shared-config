@@ -33,17 +33,12 @@ on:
         required: false
         type: string
         default: "22"
-      npm-publish:
-        description: Publish to npm atomically during release (Node). If publish fails, no tag/release created
-        required: false
-        type: boolean
-        default: false
       project-type:
         description: "Project type: node or python"
         required: true
         type: string
-      pypi-publish:
-        description: Publish to PyPI atomically during release (Python). If publish fails, no tag/release created
+      publish:
+        description: Publish to registry atomically (npm for node, PyPI for python). If publish fails, no tag/release created
         required: false
         type: boolean
         default: false
@@ -103,17 +98,12 @@ on:
         required: false
         type: string
         default: "22"
-      npm-publish:
-        description: Publish to npm atomically during release (Node). If publish fails, no tag/release created
-        required: false
-        type: boolean
-        default: false
       project-type:
         description: "Project type: node or python"
         required: true
         type: string
-      pypi-publish:
-        description: Publish to PyPI atomically during release (Python). If publish fails, no tag/release created
+      publish:
+        description: Publish to registry atomically (npm for node, PyPI for python). If publish fails, no tag/release created
         required: false
         type: boolean
         default: false
@@ -183,7 +173,7 @@ jobs:
           dist-directory: ${{ inputs.dist-directory }}
           dry-run: ${{ inputs.dry-run }}
           node-version: ${{ inputs.node-version }}
-          npm-publish: ${{ inputs.npm-publish }}
+          npm-publish: ${{ inputs.publish }}
           npm-token: ${{ secrets.NPM_TOKEN }}
           use-oidc: ${{ inputs.use-oidc }}
           working-directory: ${{ inputs.working-directory }}
@@ -198,11 +188,23 @@ jobs:
           config-path: ${{ inputs.config-path }}
           dist-directory: ${{ inputs.dist-directory }}
           dry-run: ${{ inputs.dry-run }}
-          pypi-publish: ${{ inputs.pypi-publish }}
+          pypi-publish: ${{ inputs.publish }}
           pypi-token: ${{ secrets.PYPI_TOKEN }}
           python-version: ${{ inputs.python-version }}
           use-oidc: ${{ inputs.use-oidc }}
           working-directory: ${{ inputs.working-directory }}
+
+      - name: Update major version tag
+        if: (steps.release-node.outputs.new-release-published == 'true' || steps.release-python.outputs.new-release-published == 'true') && inputs.dry-run != true
+        env:
+          VERSION: ${{ steps.release-node.outputs.new-release-version || steps.release-python.outputs.new-release-version }}
+        run: |
+          MAJOR="v${VERSION%%.*}"
+          git config user.name "${{ steps.bot-token.outputs.app-slug }}[bot]"
+          git config user.email "${{ secrets.BOT_ID }}+${{ steps.bot-token.outputs.app-slug }}[bot]@users.noreply.github.com"
+          git tag -fa "$MAJOR" -m "Release $MAJOR (points to v$VERSION)"
+          git push origin "$MAJOR" --force
+          echo "Updated $MAJOR to point to v$VERSION"
 
   back-merge:
     name: Back-merge to main

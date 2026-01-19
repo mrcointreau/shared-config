@@ -81,7 +81,7 @@ jobs:
     uses: mrcointreau/shared-config/.github/workflows/release.yml@main
     with:
       project-type: node
-      npm-publish: true
+      publish: true
       use-oidc: true
     secrets:
       BOT_ID: ${{ secrets.BOT_ID }}
@@ -116,8 +116,7 @@ jobs:
 
 | Input | Type | Default | Description |
 |-------|------|---------|-------------|
-| `npm-publish` | boolean | `false` | Publish to npm |
-| `pypi-publish` | boolean | `false` | Publish to PyPI |
+| `publish` | boolean | `false` | Publish to npm/PyPI |
 | `use-oidc` | boolean | `true` | Use OIDC trusted publishing |
 | `dist-directory` | string | `dist` | Built package directory |
 | `config-path` | string | built-in | Custom semantic-release config |

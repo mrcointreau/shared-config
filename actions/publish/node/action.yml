@@ -1,6 +1,6 @@
 name: Publish Node Package
 author: mrcointreau
-description: Publish npm packages using a standalone action for manual runs or recovery. For new releases, prefer release/node with npm-publish=true for atomic release+publish (no tag/release if publish fails)
+description: Publish npm packages using a standalone action for manual runs or recovery. For new releases, prefer release workflow with publish=true for atomic release+publish (no tag/release if publish fails)
 
 inputs:
   node-version:

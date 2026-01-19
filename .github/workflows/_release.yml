@@ -41,7 +41,7 @@ jobs:
     with:
       back-merge: ${{ github.ref_name == 'release' }}
       config-path: .releaserc.json
-      npm-publish: ${{ needs.check-paths.outputs.configs-changed == 'true' }}
+      publish: ${{ needs.check-paths.outputs.configs-changed == 'true' }}
       project-type: node
       use-oidc: true
     secrets:
