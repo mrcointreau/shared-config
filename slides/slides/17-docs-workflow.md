@@ -8,28 +8,33 @@ layout: two-cols-header
 
 ### Purpose
 
-Build docs and publish to GitHub Pages or DevPortal.
+Build docs and publish to **GitHub Pages** and **DevPortal** by default.
 
 ### Inputs
 
-- `project-type`: `node` or `python`
-- `publish`: `true` to push to Pages
-- `publish-devportal`: `true` to push to DevPortal
+- `project-type`: `node` (TypeDoc) or `python` (Sphinx)
+- `publish`: GitHub Pages (default: `true`)
+- `publish-devportal`: DevPortal branch (default: `true`)
 - `devportal-docs-branch`: default `docs-dist`
-- `docs-path`: default `docs`
+- `docs-path`, `working-directory`
 
 ::right::
 
 ```yaml
 uses: mrcointreau/shared-config/.github/workflows/docs.yml@main
 with:
-  project-type: node    # TypeDoc
-  # project-type: python  # Sphinx
-  publish: true         # to GitHub Pages
-  publish-devportal: true  # to DevPortal branch
-  docs-path: "docs"
+  project-type: node
+  # Both publish targets enabled by default
+  # publish: true
+  # publish-devportal: true
 ```
 
+<div class="mt-4 text-sm">
+
+**Opt-out** with `publish-devportal: false` if needed
+
+</div>
+
 <!--
-TypeDoc handles Node projects, Sphinx handles Python—documentation tooling matches the ecosystem. There are two publish targets: GitHub Pages and DevPortal. DevPortal integration is optional for teams using centralized documentation portals, and both can be enabled simultaneously. Here's the flow showing how both publishing targets work independently.
+TypeDoc handles Node projects, Sphinx handles Python—documentation tooling matches the ecosystem. Both GitHub Pages and DevPortal publish by default. Opt-out rather than opt-in ensures documentation stays current everywhere. Next slide explains why DevPortal is so important.
 -->

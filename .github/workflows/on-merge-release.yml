@@ -1,0 +1,81 @@
+name: On Merge to Release
+
+on:
+  workflow_call:
+    inputs:
+      project-type:
+        description: "Project type: node or python"
+        required: true
+        type: string
+      node-version:
+        description: "Node.js version (Node projects)"
+        required: false
+        type: string
+        default: "22"
+      python-version:
+        description: "Python version (Python projects)"
+        required: false
+        type: string
+        default: "3.12"
+      working-directory:
+        description: "Working directory (for monorepos)"
+        required: false
+        type: string
+        default: "."
+    secrets:
+      BOT_ID:
+        required: true
+      BOT_SK:
+        required: true
+      NPM_TOKEN:
+        required: false
+      PYPI_TOKEN:
+        required: false
+  workflow_dispatch:
+    inputs:
+      project-type:
+        description: "Project type: node or python"
+        required: true
+        type: choice
+        options:
+          - node
+          - python
+      node-version:
+        description: "Node.js version (Node projects)"
+        required: false
+        type: string
+        default: "22"
+      python-version:
+        description: "Python version (Python projects)"
+        required: false
+        type: string
+        default: "3.12"
+      working-directory:
+        description: "Working directory (for monorepos)"
+        required: false
+        type: string
+        default: "."
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
+
+# CI and docs already ran on main—just release and back-merge
+jobs:
+  release:
+    name: Release (Stable)
+    uses: mrcointreau/shared-config/.github/workflows/release.yml@main
+    with:
+      project-type: ${{ inputs.project-type }}
+      working-directory: ${{ inputs.working-directory }}
+      node-version: ${{ inputs.node-version }}
+      python-version: ${{ inputs.python-version }}
+      publish: true
+      back-merge: true
+    secrets:
+      BOT_ID: ${{ secrets.BOT_ID }}
+      BOT_SK: ${{ secrets.BOT_SK }}
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
