@@ -72,7 +72,31 @@ src: ./slides/16-sample-cicd-workflow.md
 ---
 
 ---
+src: ./slides/42-orchestration-problem.md
+---
+
+---
+src: ./slides/43-on-merge-main.md
+---
+
+---
+src: ./slides/44-on-merge-release.md
+---
+
+---
+src: ./slides/45-orchestration-flow.md
+---
+
+---
+src: ./slides/46-dependabot-updates.md
+---
+
+---
 src: ./slides/17-docs-workflow.md
+---
+
+---
+src: ./slides/17b-devportal-kapa.md
 ---
 
 ---
