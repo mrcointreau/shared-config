@@ -6,7 +6,7 @@ layout: diagram-tight
 
 <div>
 
-```mermaid {scale: 0.39}
+```mermaid {scale: 0.49}
 flowchart TB
     subgraph shared-config["shared-config"]
         subgraph workflows["Reusable Workflows"]
